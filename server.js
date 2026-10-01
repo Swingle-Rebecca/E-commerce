@@ -8,7 +8,7 @@ const { Pool } = require('pg');
 const formData = require('form-data');
 const Mailgun = require('mailgun.js');
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 3 });
 const mg = new Mailgun(formData).client({
   username: 'api', key: process.env.MAILGUN_API_KEY || 'missing',
   url: process.env.MAILGUN_URL || 'https://api.mailgun.net'
@@ -141,4 +141,5 @@ app.get('/api/orders', needAuth, wrap(async (req, res) => {
 }));
 
 app.use(express.static('public'));
-app.listen(process.env.PORT || 3000, () => console.log('Shop running on', process.env.BASE_URL || 'http://localhost:3000'));
+if (require.main === module) app.listen(process.env.PORT || 3000, () => console.log('Shop running on', process.env.BASE_URL || 'http://localhost:3000'));
+module.exports = app;
