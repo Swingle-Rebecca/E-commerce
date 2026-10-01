@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Becca's Provision Shop</title>
+<style>
+:root{--bg:#fdf9f3;--ink:#2b2420;--mut:#7a7068;--card:#fff;--line:#eadfd2;--acc:#c2410c;--acc2:#fff1e6}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+a{color:inherit;text-decoration:none}
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.top{display:flex;gap:14px;align-items:center;padding:12px 20px;flex-wrap:wrap;max-width:1050px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.logo{width:46px;height:46px;border-radius:14px;background:var(--acc);display:grid;place-items:center;font-size:26px}
+.brand b{font-size:19px;display:block;line-height:1.1}.brand small{color:var(--mut);font-size:12px}
+nav{display:flex;gap:14px;align-items:center;font-size:15px}
+.btn{background:var(--acc);color:#fff;border:0;padding:10px 18px;border-radius:8px;font:inherit;cursor:pointer;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}.btn.sm{padding:6px 12px;font-size:14px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.search{max-width:1050px;margin:0 auto;padding:0 20px 12px;display:flex;gap:8px}
+.search input{margin:0;flex:1}
+main{max-width:1050px;margin:0 auto;padding:20px}
+.hero{background:var(--acc2);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px}
+.hero h1{margin:0 0 4px;font-size:26px}.hero p{margin:0;color:var(--mut)}
+h2{margin:18px 0 10px}
+.cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.chip{padding:7px 14px;border:1px solid var(--line);border-radius:99px;background:var(--card);font-size:14px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:5px}
+.card .em{font-size:48px;text-align:center;padding:12px 0;background:var(--bg);border-radius:8px;position:relative}
+.mut{color:var(--mut);font-size:14px}.price{font-weight:700;font-size:17px}.card .btn,.card .step{margin-top:auto}
+.step{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--acc);border-radius:8px;overflow:hidden}
+.step button{width:42px;height:38px;border:0;background:var(--acc2);color:var(--acc);font-size:20px;cursor:pointer}
+.step span{font-weight:700}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row .step{width:120px;margin:0}
+input{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;margin:4px 0 12px;background:#fff}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+.two{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}@media(max-width:700px){.two{grid-template-columns:1fr}}
+.err{color:#b3261e}.avatar{width:26px;height:26px;border-radius:50%;vertical-align:middle}
+.rm{background:none;border:0;color:#b3261e;cursor:pointer;font-size:13px;padding:0}
+.bd{position:absolute;top:6px;font-style:normal;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;color:#fff;line-height:1.4}
+.bs{left:6px;background:#c2410c}.off{right:6px;background:#15803d}
+.perks{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:8px}
+.perks div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;text-align:center}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 8px;text-align:center;font-weight:600;font-size:14px}
+.tile span{display:block;font-size:36px;margin-bottom:6px}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin-top:26px}
+.sec a{color:var(--acc);font-size:14px}
+footer{background:var(--ink);color:#e9e2da;margin-top:40px;padding:28px 20px;font-size:14px}
+footer .in{max-width:1050px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+footer a{color:#fff;text-decoration:underline}
+#toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,80px);background:#15803d;color:#fff;padding:10px 18px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:20;pointer-events:none}
+#toast.show{transform:translate(-50%,0);opacity:1}
+</style></head><body>
+<header>
+  <div class="top">
+    <a class="brand" href="#/"><span class="logo">🧺</span><span><b>Becca's Provision Shop</b><small>Your everyday little essentials</small></span></a>
+    <nav><a href="#/orders">My orders</a><a href="#/cart">🛒 Basket (<span id="cc">0</span>)</a><span id="auth"></span></nav>
+  </div>
+  <div class="search"><input id="q" placeholder="Search for a product or category..." autocomplete="off"><button class="btn ghost" id="clr" style="display:none">Clear</button></div>
+</header>
+<main id="app"></main><div id="toast"></div>
+<footer><div class="in">
+<div><b style="color:#fff;font-size:16px">Becca's Provision Shop</b><br>Your everyday little essentials</div>
+<div>📞 <a href="tel:+2348168229105">0816 822 9105</a><br>💬 <a href="https://wa.me/2348168229105" target="_blank">Chat on WhatsApp</a><br>📍 Woji, Port Harcourt</div>
+<div>🚚 Flat delivery fee: ₦4,000<br>📧 Order confirmation sent by email</div>
+</div></footer>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const naira=k=>'₦'+(k/100).toLocaleString('en-NG',{minimumFractionDigits:2});
+const DELIVERY=400000;
+let me=null,cats=[],all=[],P={},q='';
+let cart=JSON.parse(localStorage.getItem('cart')||'{}');
+const count=()=>Object.values(cart).reduce((a,b)=>a+b,0);
+const saveCart=()=>{localStorage.setItem('cart',JSON.stringify(cart));$('#cc').textContent=count()};
+const api=async(u,o)=>{const r=await fetch(u,o);const d=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(d.error||'Request failed'),{status:r.status});return d};
+
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),1500)}
+function chg(id,d){if(d>0&&P[id]&&(cart[id]||0)<P[id].stock)toast('✓ Added to cart: '+P[id].name);
+  const p=P[id];if(!p)return;let n=(cart[id]||0)+d;if(n>p.stock)n=p.stock;if(n<=0)delete cart[id];else cart[id]=n;saveCart();const y=scrollY;route();scrollTo(0,y)}
+function rm(id){delete cart[id];saveCart();const y=scrollY;route();scrollTo(0,y)}
+function badges(p){return (p.best_seller?'<i class="bd bs">🔥 Best seller</i>':'')+(p.old_price_kobo?`<i class="bd off">-${Math.round(100-p.price_kobo*100/p.old_price_kobo)}%</i>`:'')}
+function priceHtml(p){return `<span class="price">${naira(p.price_kobo)}${p.old_price_kobo?` <s class="mut" style="font-weight:400;font-size:14px">${naira(p.old_price_kobo)}</s>`:''}</span>`}
+function ctrl(p){
+  if(p.stock<1)return '<button class="btn" disabled>Sold out</button>';
+  return `<button class="btn" onclick="chg(${p.id},1)">Add to cart</button>`;
+}
+function card(p){return `<div class="card"><div class="em">${badges(p)}${esc(p.emoji)}</div><b>${esc(p.name)}</b><span class="mut">${esc(p.description||'')}</span>${priceHtml(p)}${ctrl(p)}</div>`}
+function shelf(title,link,list){return list.length?`<div class="sec"><h2 style="margin:0">${title}</h2><a href="${link}">See all →</a></div><div class="grid" style="margin-top:10px">${list.slice(0,8).map(card).join('')}</div>`:''}
+const cartLines=()=>Object.entries(cart).map(([id,qty])=>({p:P[id],qty})).filter(x=>x.p);
+const subtotal=l=>l.reduce((a,x)=>a+x.p.price_kobo*x.qty,0);
+
+async function init(){
+  try{
+    [me,cats,all]=await Promise.all([api('/api/me'),api('/api/categories'),api('/api/products')]);
+    all.forEach(p=>P[p.id]=p);
+  }catch(e){return $('#app').innerHTML=`<p class="err">${esc(e.message)}</p>`}
+  $('#auth').innerHTML=me?`<img class="avatar" src="${esc(me.avatar||'')}" alt=""> <button class="btn ghost sm" id="lo">Log out</button>`:`<a class="btn sm" href="/auth/google">Sign in</a>`;
+  if(me)$('#lo').onclick=async()=>{await api('/auth/logout',{method:'POST'});location.hash='#/';location.reload()};
+  saveCart();route();
+}
+window.addEventListener('hashchange',route);
+$('#q').oninput=e=>{q=e.target.value.trim().toLowerCase();$('#clr').style.display=q?'':'none';
+  if(/^#\/(cart|checkout|orders|done)/.test(location.hash))location.hash='#/';else route()};
+$('#clr').onclick=()=>{$('#q').value='';q='';$('#clr').style.display='none';route()};
+
+function route(){
+  const [,pg,arg]=location.hash.split('/');
+  if(!pg||pg==='category')return shop(arg||'');
+  if(pg==='cart')return cartView();
+  if(pg==='checkout')return checkout();
+  if(pg==='orders')return orders();
+  if(pg==='done')return $('#app').innerHTML=`<div class="box"><h2>Order #${esc(arg)} placed 🎉</h2><p>A confirmation email is on its way to ${esc(me?.email||'you')}.</p><a class="btn" href="#/">Keep shopping</a></div>`;
+}
+
+function home(){
+  $('#app').innerHTML=`<div class="hero"><h1>The everyday little essentials</h1><p>From your favourite snacks to the little things you can't do without.</p><a class="btn" href="#/category/${esc(cats[0]?.slug||'')}" style="margin-top:12px">Start shopping</a></div>
+  <div class="perks"><div>🚚 Flat ₦4,000 delivery</div><div>📧 Confirmation email for every order</div><div>💬 Questions? Message us on WhatsApp</div></div>
+  <h2>Shop by category</h2><div class="tiles">${cats.map(c=>`<a class="tile" href="#/category/${esc(c.slug)}"><span>${esc(all.find(p=>p.category===c.slug)?.emoji||'🛍️')}</span>${esc(c.name)}</a>`).join('')}</div>
+  ${shelf('🔥 Best sellers','#/category/best',all.filter(p=>p.best_seller))}
+  ${shelf('🏷️ Discounted prices','#/category/deals',all.filter(p=>p.old_price_kobo))}
+  ${cats.map(c=>shelf(esc(c.name),'#/category/'+esc(c.slug),all.filter(p=>p.category===c.slug))).join('')}`;
+}
+
+function shop(slug){
+  if(!slug&&!q)return home();
+  const list=all.filter(p=>(q||!slug||(slug==='best'?p.best_seller:slug==='deals'?p.old_price_kobo:p.category===slug))&&(!q||(p.name+' '+(p.description||'')+' '+(cats.find(c=>c.slug===p.category)?.name||'')).toLowerCase().includes(q)));
+  const cur=cats.find(c=>c.slug===slug);
+  const title=q?`Results for "${esc(q)}"`:(cur?esc(cur.name):slug==='best'?'Best sellers':slug==='deals'?'Discounted prices':'All products');
+  $('#app').innerHTML=`<div class="cats"><a class="chip ${!slug?'on':''}" href="#/">All products</a><a class="chip ${slug==='best'?'on':''}" href="#/category/best">🔥 Best sellers</a><a class="chip ${slug==='deals'?'on':''}" href="#/category/deals">🏷️ Discounted</a>${cats.map(c=>`<a class="chip ${slug===c.slug?'on':''}" href="#/category/${esc(c.slug)}">${esc(c.name)}</a>`).join('')}</div>
+    <h2 style="margin-top:0">${title}</h2>
+    ${list.length?`<div class="grid">${list.map(card).join('')}</div>`
+    :`<div class="box">No products found. <a href="#/" onclick="$('#clr').click()"><u>Clear search</u></a></div>`}`;
+}
+
+function cartView(){
+  const l=cartLines();
+  if(!l.length)return $('#app').innerHTML='<div class="box"><h2>Your basket is empty</h2><a class="btn" href="#/">Start shopping</a></div>';
+  const sub=subtotal(l);
+  $('#app').innerHTML=`<div class="box"><h2 style="margin-top:0">Your basket</h2>${l.map(({p,qty})=>`<div class="row">
+    <span>${esc(p.emoji)} <b>${esc(p.name)}</b><br><span class="mut">${naira(p.price_kobo)} each</span><br><button class="rm" onclick="rm(${p.id})">Remove</button></span>
+    <div class="step"><button onclick="chg(${p.id},-1)">−</button><span>${qty}</span><button onclick="chg(${p.id},1)">+</button></div>
+    <b>${naira(p.price_kobo*qty)}</b></div>`).join('')}
+    <div class="row"><span>Subtotal</span><span>${naira(sub)}</span></div>
+    <div class="row"><span>Delivery</span><span>${naira(DELIVERY)}</span></div>
+    <div class="row"><b>Total</b><b>${naira(sub+DELIVERY)}</b></div>
+    <p><a class="btn" href="#/checkout">Continue to checkout</a></p></div>`;
+}
+
+function checkout(){
+  const l=cartLines();
+  if(!l.length)return location.hash='#/cart';
+  if(!me)return $('#app').innerHTML='<div class="box"><h2>Sign in to check out</h2><p>Sign in with Google so your order and confirmation email go to the right place.</p><a class="btn" href="/auth/google">Sign in with Google</a></div>';
+  const sub=subtotal(l);
+  $('#app').innerHTML=`<div class="two"><div class="box"><h2 style="margin-top:0">Contact &amp; delivery</h2>
+    <label>Full name<input id="n" value="${esc(me.name||'')}"></label><label>Phone number<input id="ph" type="tel"></label>
+    <label>Delivery address<input id="ad"></label><label>City / area<input id="ci"></label>
+    <p class="err" id="er"></p><button class="btn" id="go">Place order · ${naira(sub+DELIVERY)}</button></div>
+    <div class="box"><h3 style="margin-top:0">Order summary</h3>${l.map(x=>`<div class="row"><span>${esc(x.p.name)} × ${x.qty}</span><span>${naira(x.p.price_kobo*x.qty)}</span></div>`).join('')}
+    <div class="row"><span>Delivery</span><span>${naira(DELIVERY)}</span></div>
+    <div class="row"><b>Total</b><b>${naira(sub+DELIVERY)}</b></div></div></div>`;
+  $('#go').onclick=async()=>{
+    $('#go').disabled=true;$('#er').textContent='';
+    try{
+      const r=await api('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        items:l.map(x=>({id:x.p.id,qty:x.qty})),shipping:{name:$('#n').value,phone:$('#ph').value,address:$('#ad').value,city:$('#ci').value}})});
+      cart={};saveCart();location.hash='#/done/'+r.id;
+    }catch(e){$('#er').textContent=e.message;$('#go').disabled=false}
+  };
+}
+
+async function orders(){
+  if(!me)return $('#app').innerHTML='<div class="box">Sign in to see your orders. <a class="btn" href="/auth/google">Sign in with Google</a></div>';
+  try{
+    const list=await api('/api/orders');
+    $('#app').innerHTML=list.length?list.map(o=>`<div class="box" style="margin-bottom:12px"><b>Order #${o.id}</b> · ${esc(o.status)} · ${new Date(o.created_at).toLocaleDateString()}
+      ${o.items.map(i=>`<div class="mut">${esc(i.name)} × ${i.qty}</div>`).join('')}<b>Total (incl. delivery): ${naira(o.total_kobo)}</b></div>`).join(''):'<div class="box">No orders yet.</div>';
+  }catch(e){$('#app').innerHTML=`<p class="err">${esc(e.message)}</p>`}
+}
+init();
+</script></body></html>
