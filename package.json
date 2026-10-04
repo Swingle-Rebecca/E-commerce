@@ -4,7 +4,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "db:init": "node -e \"require('dotenv').config();const {Pool}=require('pg');new Pool({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false}}).query(require('fs').readFileSync('schema.sql','utf8')).then(()=>{console.log('DB ready');process.exit()}).catch(e=>{console.error(e);process.exit(1)})\""
+    "db:init": "node -e \"require('dotenv').config();const {Pool}=require('pg');new Pool({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false}}).query(require('fs').readFileSync('schema.sql','utf8')).then(()=>{console.log('DB ready');process.exit()}).catch(e=>{console.error(e);process.exit(1)})\"",
+    "test": "node --test tests/*.test.js",
+    "db:migrate": "node scripts/migrate.js"
   },
   "dependencies": {
     "connect-pg-simple": "^10.0.0",
@@ -17,5 +19,8 @@
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.12.0",
     "serverless-http": "^4.0.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
   }
 }
