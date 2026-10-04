@@ -7,6 +7,7 @@ const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
 const { Pool } = require('pg');
 const formData = require('form-data');
 const Mailgun = require('mailgun.js');
+const { mobileAuth } = require('./mobile-auth');
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 3 });
 const mg = new Mailgun(formData).client({
@@ -29,7 +30,8 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.BASE_URL}/auth/google/callback`
+  callbackURL: `${process.env.BASE_URL}/auth/google/callback`,
+  state: true
 }, async (_at, _rt, profile, done) => {
   try {
     const email = profile.emails?.[0]?.value, avatar = profile.photos?.[0]?.value;
@@ -51,9 +53,16 @@ const needAuth = (req, res, next) => req.user ? next() : res.status(401).json({ 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const naira = k => '₦' + (k / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 });
 
+const mobile = mobileAuth(pool);
+app.use((req, res, next) => mobile.authenticate(req, res, next).catch(next));
+app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+
 // ---- Auth ----
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/#/?login=failed' }), (_q, res) => res.redirect('/#/'));
+app.get('/auth/google', (req, _res, next) => { delete req.session.mobileLogin; next(); }, passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get('/auth/mobile', mobile.start, passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' }));
+app.post('/api/mobile/session', wrap(mobile.exchange));
+app.post('/api/mobile/logout', needAuth, wrap(mobile.logout));
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/#/?login=failed', keepSessionInfo: true }), wrap(mobile.complete));
 app.post('/auth/logout', (req, res) => req.logout(() => res.json({ ok: true })));
 app.get('/api/me', (req, res) => res.json(req.user ? { id: req.user.id, name: req.user.name, email: req.user.email, avatar: req.user.avatar } : null));
 
@@ -86,7 +95,7 @@ app.post('/api/orders', needAuth, wrap(async (req, res) => {
     await client.query('BEGIN');
     let total = 0;
     for (const it of items) {
-      const qty = parseInt(it.qty, 10);
+      const qty = it.qty;
       if (!Number.isInteger(qty) || qty < 1 || qty > 20) throw Object.assign(new Error('Bad quantity'), { status: 400 });
       // Price comes from the DB, never from the browser. Row lock + stock check prevents overselling.
       const { rows: [p] } = await client.query('SELECT id,name,price_kobo,stock FROM products WHERE id=$1 FOR UPDATE', [it.id]);
@@ -143,14 +152,37 @@ app.get('/api/orders', needAuth, wrap(async (req, res) => {
 }));
 
 // ---- Cart (shared by website and phone app) ----
+app.post('/api/cart/:id', needAuth, wrap(async (req, res) => {
+  const id = Number(req.params.id), delta = req.body?.delta;
+  if (!Number.isInteger(id) || id < 1 || !Number.isInteger(delta) || Math.abs(delta) !== 1)
+    return res.status(400).json({ error: 'Bad cart item' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [req.user.id]);
+    const { rows: [product] } = await client.query('SELECT stock FROM products WHERE id=$1', [id]);
+    if (!product) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Product not found' });
+    }
+    const { rows: [item] } = await client.query('SELECT qty FROM cart_items WHERE user_id=$1 AND product_id=$2', [req.user.id, id]);
+    const qty = Math.max(0, Math.min(20, product.stock, (item?.qty || 0) + delta));
+    if (qty === 0) await client.query('DELETE FROM cart_items WHERE user_id=$1 AND product_id=$2', [req.user.id, id]);
+    else await client.query('INSERT INTO cart_items (user_id,product_id,qty) VALUES ($1,$2,$3) ON CONFLICT (user_id,product_id) DO UPDATE SET qty=$3', [req.user.id, id, qty]);
+    const { rows } = await client.query('SELECT product_id,qty FROM cart_items WHERE user_id=$1', [req.user.id]);
+    await client.query('COMMIT');
+    res.json(Object.fromEntries(rows.map(item => [item.product_id, item.qty])));
+  } catch (error) { await client.query('ROLLBACK'); throw error; }
+  finally { client.release(); }
+}));
 app.get('/api/cart', needAuth, wrap(async (req, res) => {
   const { rows } = await pool.query('SELECT product_id, qty FROM cart_items WHERE user_id=$1', [req.user.id]);
   const cart = {}; rows.forEach(r => cart[r.product_id] = r.qty);
   res.json(cart);
 }));
 app.put('/api/cart/:id', needAuth, wrap(async (req, res) => {
-  const id = parseInt(req.params.id, 10), qty = parseInt(req.body?.qty, 10);
-  if (!Number.isInteger(id) || !Number.isInteger(qty) || qty < 0 || qty > 20) return res.status(400).json({ error: 'Bad cart item' });
+  const id = Number(req.params.id), qty = req.body?.qty;
+  if (!Number.isInteger(id) || id < 1 || !Number.isInteger(qty) || qty < 0 || qty > 20) return res.status(400).json({ error: 'Bad cart item' });
   if (qty === 0) await pool.query('DELETE FROM cart_items WHERE user_id=$1 AND product_id=$2', [req.user.id, id]);
   else {
     const ok = await pool.query('SELECT 1 FROM products WHERE id=$1', [id]);

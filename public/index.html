@@ -83,19 +83,35 @@ const count=()=>Object.values(cart).reduce((a,b)=>a+b,0);
 const saveCart=()=>{localStorage.setItem('cart',JSON.stringify(cart));$('#cc').textContent=count()};
 const api=async(u,o)=>{const r=await fetch(u,o);const d=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(d.error||'Request failed'),{status:r.status});return d};
 
-let lastEdit=0;
+let edits=Promise.resolve(),pending=0,revision=0;
 const norm=o=>JSON.stringify(Object.keys(o).sort().map(k=>[k,o[k]]));
-function sync(id){if(!me)return;lastEdit=Date.now();fetch('/api/cart/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({qty:cart[id]||0})}).catch(()=>{})}
 async function pull(){
-  if(!me||document.hidden||Date.now()-lastEdit<2500)return;
+  if(!me||document.hidden||pending)return;
+  const version=revision;
   try{const s=await api('/api/cart');
+    if(pending||version!==revision)return;
     if(norm(s)!==norm(cart)){cart=s;saveCart();
-      if(!/^#\/checkout/.test(location.hash)){const y=scrollY;route();scrollTo(0,y)}}}catch(e){}
+      if(!location.hash.startsWith('#/checkout')){const y=scrollY;route();scrollTo(0,y)}}
+  }catch(e){if(e.status===401)toast('Please sign in again.');}
 }
-let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),1500)}
-function chg(id,d){if(d>0&&P[id]&&(cart[id]||0)<P[id].stock)toast('✓ Added to cart: '+P[id].name);
-  const p=P[id];if(!p)return;let n=(cart[id]||0)+d;if(n>p.stock)n=p.stock;if(n<=0)delete cart[id];else cart[id]=n;saveCart();sync(id);const y=scrollY;route();scrollTo(0,y)}
-function rm(id){delete cart[id];saveCart();sync(id);const y=scrollY;route();scrollTo(0,y)}
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2500)}
+function remoteEdit(id,body,method){
+  pending++;revision++;
+  edits=edits.then(async()=>{
+    const result=await api('/api/cart/'+id,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    cart=method==='POST'?result:await api('/api/cart');saveCart();
+    const y=scrollY;route();scrollTo(0,y);
+  }).catch(e=>toast(e.message)).finally(()=>{pending--;revision++;});
+  return edits;
+}
+function chg(id,d){
+  const p=P[id];if(!p)return;
+  if(me)return remoteEdit(id,{delta:d},'POST');
+  const n=Math.max(0,Math.min(20,p.stock,(cart[id]||0)+d));
+  if(!n)delete cart[id];else cart[id]=n;saveCart();route();
+  if(d>0)toast('Added to basket. Sign in to sync it with your phone.');
+}
+function rm(id){if(me)return remoteEdit(id,{qty:0},'PUT');delete cart[id];saveCart();route()}
 function badges(p){return (p.best_seller?'<i class="bd bs">🔥 Best seller</i>':'')+(p.old_price_kobo?`<i class="bd off">-${Math.round(100-p.price_kobo*100/p.old_price_kobo)}%</i>`:'')}
 function priceHtml(p){return `<span class="price">${naira(p.price_kobo)}${p.old_price_kobo?` <s class="mut" style="font-weight:400;font-size:14px">${naira(p.old_price_kobo)}</s>`:''}</span>`}
 function ctrl(p){
@@ -113,13 +129,16 @@ async function init(){
     all.forEach(p=>P[p.id]=p);
     if(me){try{
       const s=await api('/api/cart');
-      if(localStorage.getItem('cartOwner')!==String(me.id)){
-        // first time this device logs in: keep anything added as a guest
-        const m=[];for(const id in cart)if(cart[id]>(s[id]||0)){s[id]=cart[id];m.push(id)}
-        cart=s;m.forEach(id=>sync(id));
+      // Merge only a guest basket; never copy another account's saved items.
+      if(!localStorage.getItem('cartOwner')){
+        for(const id of Object.keys(cart)){
+          const qty=Math.min(20,P[id]?.stock||0,Math.max(cart[id],s[id]||0));
+          if(qty>(s[id]||0))await api('/api/cart/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({qty})});
+        }
+        cart=await api('/api/cart');
       }else cart=s;
       localStorage.setItem('cartOwner',String(me.id));
-    }catch(e){}}
+    }catch(e){toast('Basket sync failed: '+e.message);cart={};}}
   }catch(e){return $('#app').innerHTML=`<p class="err">${esc(e.message)}</p>`}
   $('#auth').innerHTML=me?`<img class="avatar" src="${esc(me.avatar||'')}" alt=""> <button class="btn ghost sm" id="lo">Log out</button>`:`<a class="btn sm" href="/auth/google">Sign in</a>`;
   if(me)$('#lo').onclick=async()=>{await api('/auth/logout',{method:'POST'});localStorage.removeItem('cart');localStorage.removeItem('cartOwner');location.hash='#/';location.reload()};
@@ -189,8 +208,9 @@ function checkout(){
   $('#go').onclick=async()=>{
     $('#go').disabled=true;$('#er').textContent='';
     try{
+      await edits;
       const r=await api('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        items:l.map(x=>({id:x.p.id,qty:x.qty})),shipping:{name:$('#n').value,phone:$('#ph').value,address:$('#ad').value,city:$('#ci').value}})});
+        items:cartLines().map(x=>({id:x.p.id,qty:x.qty})),shipping:{name:$('#n').value,phone:$('#ph').value,address:$('#ad').value,city:$('#ci').value}})});
       cart={};saveCart();location.hash='#/done/'+r.id;
     }catch(e){$('#er').textContent=e.message;$('#go').disabled=false}
   };

@@ -1,0 +1,32 @@
+name: Publish approved APK preview
+on:
+  push:
+    branches: [mobile-shared-cart]
+    paths: ['.github/workflows/publish-apk-preview.yml']
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: Swingle-Rebecca/E-commerce
+    steps:
+      - name: Download the verified APK
+        run: gh run download 37238181541 --name becca-shop-apk --dir apk
+      - name: Verify APK checksum
+        run: echo '8c20499cfcfa90730c5c5d41a535c1d3ed15524e8d145820dd201134659ae721  apk/app-release.apk' | sha256sum --check -
+      - name: Publish approved classroom preview
+        run: |
+          if gh release view becca-shop-v1 >/dev/null 2>&1; then
+            echo 'Preview release already exists.'
+            exit 0
+          fi
+          gh release create becca-shop-v1 apk/app-release.apk \
+            --target 15ae4854161e7658d4fe60111154fc7f1b20ba20 \
+            --prerelease --title 'Becca Shop Android preview' \
+            --notes 'Installable Android classroom preview. Before testing shared carts, apply migrations/002-mobile-cart.sql and deploy the backend changes from PR #1. Google sign-in and live cart synchronization still require phone verification. See mobile/README.md for setup and the continuous video checklist. Preview signing; not a store release.'
