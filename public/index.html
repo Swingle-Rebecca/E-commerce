@@ -78,6 +78,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const naira=k=>'₦'+(k/100).toLocaleString('en-NG',{minimumFractionDigits:2});
 const DELIVERY=400000;
 let me=null,cats=[],all=[],P={},q='';
+let orderEmailStatus=null;
 let cart=JSON.parse(localStorage.getItem('cart')||'{}');
 const count=()=>Object.values(cart).reduce((a,b)=>a+b,0);
 const saveCart=()=>{localStorage.setItem('cart',JSON.stringify(cart));$('#cc').textContent=count()};
@@ -159,7 +160,11 @@ function route(){
   if(pg==='cart')return cartView();
   if(pg==='checkout')return checkout();
   if(pg==='orders')return orders();
-  if(pg==='done')return $('#app').innerHTML=`<div class="box"><h2>Order #${esc(arg)} placed 🎉</h2><p>A confirmation email is on its way to ${esc(me?.email||'you')}.</p><a class="btn" href="#/">Keep shopping</a></div>`;
+  if(pg==='done'){
+    const sent=orderEmailStatus?.id===String(arg)?orderEmailStatus.emailSent:null;
+    const message=sent===false?'Your order is saved, but the confirmation email could not be sent. Please contact the shop.':sent===true?'Your confirmation email has been requested. Please check your inbox and Spam folder.':'Your order is saved. You can view it under My orders.';
+    return $('#app').innerHTML=`<div class="box"><h2>Order #${esc(arg)} placed 🎉</h2><p>${esc(message)}</p><a class="btn" href="#/">Keep shopping</a></div>`;
+  }
 }
 
 function home(){
@@ -214,6 +219,7 @@ function checkout(){
       await edits;
       const r=await api('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         items:cartLines().map(x=>({id:x.p.id,qty:x.qty})),shipping:{name:$('#n').value,phone:$('#ph').value,address:$('#ad').value,city:$('#ci').value}})});
+      orderEmailStatus={id:String(r.id),emailSent:r.emailSent===true};
       cart={};saveCart();location.hash='#/done/'+r.id;
     }catch(e){$('#er').textContent=e.message;$('#go').disabled=false}
   };
