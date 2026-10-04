@@ -91,7 +91,7 @@ async function pull(){
   try{const s=await api('/api/cart');
     if(pending||version!==revision)return;
     if(norm(s)!==norm(cart)){cart=s;saveCart();
-      if(!/^#\\/checkout/.test(location.hash)){const y=scrollY;route();scrollTo(0,y)}}
+      if(!location.hash.startsWith('#/checkout')){const y=scrollY;route();scrollTo(0,y)}}
   }catch(e){if(e.status===401)toast('Please sign in again.');}
 }
 let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2500)}

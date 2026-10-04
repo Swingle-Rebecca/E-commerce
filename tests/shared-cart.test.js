@@ -5,6 +5,8 @@ const { PGlite } = require('@electric-sql/pglite');
 const { hash } = require('../mobile-auth');
 
 test('web cookie and mobile bearer sessions share a PostgreSQL basket while another account stays isolated', async t => {
+  // Check the actual browser script before exercising its API contract.
+  new (require('node:vm').Script)(fs.readFileSync('public/index.html', 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1]);
   const db = new PGlite();
   await db.exec(fs.readFileSync('schema.sql', 'utf8'));
   await db.exec(fs.readFileSync('migrations/002-mobile-cart.sql', 'utf8'));
