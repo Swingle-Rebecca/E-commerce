@@ -56,7 +56,7 @@ input{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;fon
 footer{background:var(--ink);color:#e9e2da;margin-top:40px;padding:28px 20px;font-size:14px}
 footer .in{max-width:1050px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
 footer a{color:#fff;text-decoration:underline}
-#toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,80px);background:#15803d;color:#fff;padding:10px 18px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:20;pointer-events:none}
+#toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,80px);background:#15803d;color:#fff;padding:10px 18px;border-radius:12px;max-width:90vw;width:max-content;text-align:center;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:20;pointer-events:none}
 #toast.show{transform:translate(-50%,0);opacity:1}
 </style></head><body>
 <header>
@@ -66,7 +66,7 @@ footer a{color:#fff;text-decoration:underline}
   </div>
   <div class="search"><input id="q" placeholder="Search for a product or category..." autocomplete="off"><button class="btn ghost" id="clr" style="display:none">Clear</button></div>
 </header>
-<main id="app"></main><div id="toast"></div>
+<main id="app"></main><div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 <footer><div class="in">
 <div><b style="color:#fff;font-size:16px">Becca's Provision Shop</b><br>Your everyday little essentials</div>
 <div>📞 <a href="tel:+2348168229105">0816 822 9105</a><br>💬 <a href="https://wa.me/2348168229105" target="_blank">Chat on WhatsApp</a><br>📍 Woji, Port Harcourt</div>
@@ -98,18 +98,21 @@ let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('sh
 function remoteEdit(id,body,method){
   pending++;revision++;
   edits=edits.then(async()=>{
+    const before=cart[id]||0;
     const result=await api('/api/cart/'+id,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     cart=method==='POST'?result:await api('/api/cart');saveCart();
     const y=scrollY;route();scrollTo(0,y);
+    if(method==='POST'&&body.delta>0)toast((cart[id]||0)>before?'✓ Added to cart: '+(P[id]?.name||'Item'):'Maximum available quantity reached.');
   }).catch(e=>toast(e.message)).finally(()=>{pending--;revision++;});
   return edits;
 }
 function chg(id,d){
   const p=P[id];if(!p)return;
   if(me)return remoteEdit(id,{delta:d},'POST');
-  const n=Math.max(0,Math.min(20,p.stock,(cart[id]||0)+d));
+  const before=cart[id]||0;
+  const n=Math.max(0,Math.min(20,p.stock,before+d));
   if(!n)delete cart[id];else cart[id]=n;saveCart();route();
-  if(d>0)toast('Added to basket. Sign in to sync it with your phone.');
+  if(d>0)toast(n>before?'✓ Added to cart: '+p.name+'. Sign in to sync with your phone.':'Maximum available quantity reached.');
 }
 function rm(id){if(me)return remoteEdit(id,{qty:0},'PUT');delete cart[id];saveCart();route()}
 function badges(p){return (p.best_seller?'<i class="bd bs">🔥 Best seller</i>':'')+(p.old_price_kobo?`<i class="bd off">-${Math.round(100-p.price_kobo*100/p.old_price_kobo)}%</i>`:'')}
