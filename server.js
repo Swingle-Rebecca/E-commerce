@@ -15,7 +15,7 @@ const mg = new Mailgun(formData).client({
 });
 
 const app = express();
-const DELIVERY_KOBO = 4000;
+const DELIVERY_KOBO = 400000;
 app.set('trust proxy', 1);
 app.use(express.json());
 app.use(session({
@@ -103,6 +103,8 @@ app.post('/api/orders', needAuth, wrap(async (req, res) => {
     for (const l of lines)
       await client.query('INSERT INTO order_items (order_id,product_id,name,price_kobo,qty) VALUES ($1,$2,$3,$4,$5)',
         [order.id, l.id, l.name, l.price_kobo, l.qty]);
+    // The order is placed, so empty the saved cart (same transaction: both happen or neither).
+    await client.query('DELETE FROM cart_items WHERE user_id=$1', [req.user.id]);
     await client.query('COMMIT');
   } catch (e) {
     await client.query('ROLLBACK');
@@ -140,6 +142,24 @@ app.get('/api/orders', needAuth, wrap(async (req, res) => {
   res.json(rows);
 }));
 
+// ---- Cart (shared by website and phone app) ----
+app.get('/api/cart', needAuth, wrap(async (req, res) => {
+  const { rows } = await pool.query('SELECT product_id, qty FROM cart_items WHERE user_id=$1', [req.user.id]);
+  const cart = {}; rows.forEach(r => cart[r.product_id] = r.qty);
+  res.json(cart);
+}));
+app.put('/api/cart/:id', needAuth, wrap(async (req, res) => {
+  const id = parseInt(req.params.id, 10), qty = parseInt(req.body?.qty, 10);
+  if (!Number.isInteger(id) || !Number.isInteger(qty) || qty < 0 || qty > 20) return res.status(400).json({ error: 'Bad cart item' });
+  if (qty === 0) await pool.query('DELETE FROM cart_items WHERE user_id=$1 AND product_id=$2', [req.user.id, id]);
+  else {
+    const ok = await pool.query('SELECT 1 FROM products WHERE id=$1', [id]);
+    if (!ok.rowCount) return res.status(400).json({ error: 'Product not found' });
+    await pool.query(`INSERT INTO cart_items (user_id, product_id, qty) VALUES ($1,$2,$3)
+      ON CONFLICT (user_id, product_id) DO UPDATE SET qty=$3`, [req.user.id, id, qty]);
+  }
+  res.json({ ok: true });
+}));
 app.use(express.static('public'));
 if (require.main === module) app.listen(process.env.PORT || 3000, () => console.log('Shop running on', process.env.BASE_URL || 'http://localhost:3000'));
 module.exports = app;
