@@ -42,3 +42,28 @@ jobs:
           path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
+  publish-preview:
+    needs: apk
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: Swingle-Rebecca/E-commerce
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: becca-shop-apk
+          path: apk
+      - name: Publish approved updated APK
+        run: |
+          if gh release view becca-shop-v1.0.1 >/dev/null 2>&1; then
+            echo 'This preview version is already published.'
+            exit 0
+          fi
+          gh release create becca-shop-v1.0.1 apk/app-release.apk \
+            --target "$GITHUB_SHA" --prerelease \
+            --title 'Becca Shop 1.0.1 Android preview' \
+            --notes 'Updated Android APK: shows an Added to cart confirmation after a successful cart save. Install this version over the previous APK. Uses the same Google account and database basket as the website. Classroom preview signing; not a store release.'

@@ -2,11 +2,17 @@
   "expo": {
     "name": "Becca Shop",
     "slug": "becca-shop-mobile",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scheme": "beccashop",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "android": { "package": "com.becca.provisionshop", "versionCode": 1 },
-    "plugins": ["expo-secure-store", "expo-web-browser"]
+    "android": {
+      "package": "com.becca.provisionshop",
+      "versionCode": 2
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser"
+    ]
   }
 }

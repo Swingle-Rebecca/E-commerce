@@ -164,6 +164,10 @@ function Shop() {
     try {
       const basket = await request('/api/cart/' + id, { method: 'POST', body: { delta } });
       setCart(basket); setSynced(new Date().toLocaleTimeString());
+      if (delta > 0) {
+        const name = products.find(product => product.id === id)?.name || 'Item';
+        Alert.alert('Added to cart', name + ' is now in your basket.');
+      }
     } catch (e) { setError(e.message); }
     finally { pending.current = false; epoch.current++; setBusy(false); }
   }
